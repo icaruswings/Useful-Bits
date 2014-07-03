@@ -32,6 +32,8 @@
 #import "UsefulBits/NSArray+Access.h"
 #import "UsefulBits/UIView+Size.h"
 
+#import "UsefulQuartzFunctions.h"
+
 @implementation HorizontalStackLayout
 
 @synthesize padding = padding_;
@@ -58,16 +60,16 @@
   return self;
 }
 
-- (void)layout:(UIView *)view action:(void (^) (UIView *subview, CGRect subviewFrame))action;
+- (void)layout:(UIView *)view bounds:(CGRect)bounds action:(void (^) (UIView *subview, CGRect subviewFrame))action;
 {
   if ([[view subviews] count] == 0) return;
   
-  CGRect content_bounds = UIEdgeInsetsInsetRect([view bounds], [self contentInsets]);
+  CGRect content_bounds = UIEdgeInsetsInsetRect(bounds, [self contentInsets]);
   CGFloat height = CGRectGetHeight(content_bounds);
   
   CGFloat subview_width = [[[[view subviews] trunk] reduce: ^ id (id width, id subview) {
     CGSize subview_size = [subview sizeThatFits:CGSizeMake(0., height)];
-    CGRect subview_frame = CGRectMake([width floatValue], CGRectGetMinY(content_bounds), subview_size.width, height);
+    CGRect subview_frame = CGRectMake([width floatValue], CGRectGetMinY(content_bounds), subview_size.width, (height > 0) ? height : subview_size.height);
 
     action(subview, subview_frame);
     
@@ -78,7 +80,7 @@
   
   UIView *last = [[view subviews] last];
   CGSize last_size = [last sizeThatFits:CGSizeMake(0., height)];
-  CGRect last_frame = CGRectMake(subview_width, CGRectGetMinY(content_bounds), last_size.width, height);
+  CGRect last_frame = CGRectMake(subview_width, CGRectGetMinY(content_bounds), last_size.width, (height > 0) ? height : last_size.height);
 
   action(last, last_frame);
 }
@@ -87,17 +89,19 @@
 {
   __block CGRect bounds = CGRectZero;
 
-  [self layout:view action:^(UIView *subview, CGRect subviewFrame) {
+  [self layout:view bounds:CGRectMakeSized(size) action:^ (UIView *subview, CGRect subviewFrame) {
     bounds = CGRectUnion(bounds, subviewFrame);
   }];
   
-  CGSize content_size = CGRectIntegral(bounds).size;
-  return CGSizeMake([self contentInsets].right + content_size.width + [self contentInsets].right, size.height);
+  bounds = UB_UIEdgeInsetsOutsetRect(bounds, [self contentInsets]);
+  CGSize bounding_size = CGRectIntegral(bounds).size;
+
+  return CGSizeMake(MAX(size.width, bounding_size.width), (size.height > 0) ? size.height : bounding_size.height);
 }
 
 - (void)layoutSubviews:(UIView *)view
 {
-  [self layout:view action:^(UIView *subview, CGRect subviewFrame) {
+  [self layout:view bounds:[view bounds] action:^(UIView *subview, CGRect subviewFrame) {
     [subview setFrame:subviewFrame];
   }];
 }

@@ -28,6 +28,14 @@
 
 #import <UIKit/UIView.h>
 
+static inline CGRect UB_UIEdgeInsetsOutsetRect(CGRect rect, UIEdgeInsets insets) {
+  rect.origin.x    -= insets.left;
+  rect.origin.y    -= insets.top;
+  rect.size.width  += (insets.left + insets.right);
+  rect.size.height += (insets.top  + insets.bottom);
+  return rect;
+}
+
 @protocol LayoutManager <NSObject>
 
 - (CGSize)sizeThatFits:(CGSize)size view:(UIView *)view;

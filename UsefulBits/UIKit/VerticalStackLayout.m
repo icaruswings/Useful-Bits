@@ -32,6 +32,8 @@
 #import "NSArray+Access.h"
 #import "UIView+Size.h"
 
+#import "UsefulQuartzFunctions.h"
+
 @implementation VerticalStackLayout
 
 @synthesize padding = padding_;
@@ -67,7 +69,7 @@
   
   CGFloat subview_height = [[[[view subviews] trunk] reduce: ^ id (id height, id subview) {
     CGSize subview_size = [subview sizeThatFits:CGSizeMake(width, 0)];
-    CGRect subview_frame = CGRectMake(CGRectGetMinX(content_bounds), [height floatValue], width, subview_size.height);
+    CGRect subview_frame = CGRectMake(CGRectGetMinX(content_bounds), [height floatValue], (width > 0) ? width : subview_size.width, subview_size.height);
     
     action(subview, subview_frame);
     
@@ -78,7 +80,7 @@
   
   UIView *last = [[view subviews] last];
   CGSize last_size = [last sizeThatFits:CGSizeMake(width, 0.)];
-  CGRect last_frame = CGRectMake(CGRectGetMinX(content_bounds), subview_height, width, last_size.height);
+  CGRect last_frame = CGRectMake(CGRectGetMinX(content_bounds), subview_height, (width > 0) ? width : last_size.width, last_size.height);
 
   action(last, last_frame);
 }
@@ -87,17 +89,19 @@
 {
   __block CGRect bounds = CGRectZero;
 
-  [self layout:view bounds:CGRectMake(0, 0, size.width, size.height) action:^(UIView *subview, CGRect subviewFrame) {
+  [self layout:view bounds:CGRectMakeSized(size) action:^ (UIView *subview, CGRect subviewFrame) {
     bounds = CGRectUnion(bounds, subviewFrame);
   }];
   
-  CGSize content_size = CGRectIntegral(bounds).size;
-  return CGSizeMake(size.width, [self contentInsets].top +  content_size.height + [self contentInsets].bottom);
+  bounds = UB_UIEdgeInsetsOutsetRect(bounds, [self contentInsets]);
+  CGSize bounding_size = CGRectIntegral(bounds).size;
+  
+  return CGSizeMake((size.width > 0) ? size.width : bounding_size.width, MAX(size.height, bounding_size.height));
 }
 
 - (void)layoutSubviews:(UIView *)view
 {
-  [self layout:view bounds:[view bounds] action:^(UIView *subview, CGRect subviewFrame) {
+  [self layout:view bounds:[view bounds] action:^ (UIView *subview, CGRect subviewFrame) {
     [subview setFrame:subviewFrame];
   }];
 }
